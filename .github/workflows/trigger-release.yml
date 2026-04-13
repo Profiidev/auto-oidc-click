@@ -1,0 +1,38 @@
+name: Release Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version"
+        required: true
+        default: "v0.0.0"
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Update version
+        id: update_version
+        run: |
+          RAW_TAG=${{ github.event.inputs.version }}
+          NEW_VERSION="${RAW_TAG#v}"
+          echo "Bumping version to $NEW_VERSION"
+          jq --arg new_version "$NEW_VERSION" '.version = $new_version' manifest.json > manifest.tmp.json && mv manifest.tmp.json manifest.json
+          npx -y prettier -cw .
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add manifest.json
+          git commit -m "Bump version to $NEW_VERSION"
+          git push origin HEAD:main
+
+      - name: Tag the release
+        run: |
+          git tag ${{ github.event.inputs.version }}
+          git push origin ${{ github.event.inputs.version }}

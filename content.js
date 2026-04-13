@@ -18,35 +18,55 @@ const processPage = () => {
           try {
             const elements = document.querySelectorAll(rule.selector);
             if (elements.length === 0) {
-              console.log("Auto OIDC Click: No elements found for selector:", rule.selector);
+              console.log(
+                "Auto OIDC Click: No elements found for selector:",
+                rule.selector,
+              );
             }
             for (const el of elements) {
               if (!clickedElements.has(el)) {
-                const elText = (el.innerText || 
-                               el.value || 
-                               el.getAttribute("aria-label") || 
-                               el.getAttribute("name") || 
-                               "")
+                const elText = (
+                  el.innerText ||
+                  el.value ||
+                  el.getAttribute("aria-label") ||
+                  el.getAttribute("name") ||
+                  ""
+                )
                   .trim()
                   .split("\n")[0]
                   .slice(0, 50);
-                
-                const matchesText = !rule.text || 
-                                  elText.includes(rule.text) || 
-                                  rule.text.includes(elText) ||
-                                  el.textContent.includes(rule.text);
+
+                const matchesText =
+                  !rule.text ||
+                  elText.includes(rule.text) ||
+                  rule.text.includes(elText) ||
+                  el.textContent.includes(rule.text);
 
                 if (matchesText) {
-                  console.log("Auto OIDC Click: Clicking element", el, "based on rule", rule);
+                  console.log(
+                    "Auto OIDC Click: Clicking element",
+                    el,
+                    "based on rule",
+                    rule,
+                  );
                   el.click();
                   clickedElements.add(el);
                 } else {
-                  console.log("Auto OIDC Click: Text mismatch. Expected:", rule.text, "Found:", elText);
+                  console.log(
+                    "Auto OIDC Click: Text mismatch. Expected:",
+                    rule.text,
+                    "Found:",
+                    elText,
+                  );
                 }
               }
             }
           } catch (e) {
-            console.warn("Auto OIDC Click: Invalid selector or error", rule.selector, e);
+            console.warn(
+              "Auto OIDC Click: Invalid selector or error",
+              rule.selector,
+              e,
+            );
           }
         }
       }
