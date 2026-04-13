@@ -8,17 +8,18 @@ const processPage = () => {
 
   try {
     chrome.storage.local.get(["autoClickEnabled", "clickRules"], (result) => {
-      // Exit if the global toggle is off
       if (result.autoClickEnabled === false) return;
 
       const rules = result.clickRules || [];
       const currentUrl = window.location.href;
 
-      // Process generalized click rules
       for (const rule of rules) {
         if (rule.url && rule.selector && currentUrl.includes(rule.url)) {
           try {
             const elements = document.querySelectorAll(rule.selector);
+            if (elements.length === 0) {
+              console.log("Auto OIDC Click: No elements found for selector:", rule.selector);
+            }
             for (const el of elements) {
               if (!clickedElements.has(el)) {
                 const elText = (el.innerText || 
@@ -36,14 +37,16 @@ const processPage = () => {
                                   el.textContent.includes(rule.text);
 
                 if (matchesText) {
+                  console.log("Auto OIDC Click: Clicking element", el, "based on rule", rule);
                   el.click();
                   clickedElements.add(el);
+                } else {
+                  console.log("Auto OIDC Click: Text mismatch. Expected:", rule.text, "Found:", elText);
                 }
               }
             }
           } catch (e) {
-            // Ignore invalid CSS selectors
-            console.warn("Auto OIDC Click: Invalid selector", rule.selector);
+            console.warn("Auto OIDC Click: Invalid selector or error", rule.selector, e);
           }
         }
       }

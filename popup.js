@@ -92,26 +92,27 @@ async function startSelecting(index) {
 
       const getSelector = (el) => {
         const getElementIdentifier = (element) => {
-          if (element.id) return `#${element.id}`;
-          if (element.getAttribute("data-testid"))
-            return `[data-testid="${element.getAttribute("data-testid")}"]`;
+          if (element.id) return `#${CSS.escape(element.id)}`;
+          
+          const testId = element.getAttribute("data-testid");
+          if (testId) return `[data-testid="${CSS.escape(testId)}"]`;
           
           let identifier = element.tagName.toLowerCase();
           const nameAttr = element.getAttribute("name");
           const ariaLabel = element.getAttribute("aria-label");
+          const role = element.getAttribute("role");
           
-          if (nameAttr) {
-            identifier += `[name="${nameAttr}"]`;
-            return identifier;
-          }
-          if (ariaLabel) {
-            identifier += `[aria-label="${ariaLabel}"]`;
-            return identifier;
-          }
+          if (nameAttr) return `${identifier}[name="${CSS.escape(nameAttr)}"]`;
+          if (ariaLabel) return `${identifier}[aria-label="${CSS.escape(ariaLabel)}"]`;
+          if (role) return `${identifier}[role="${CSS.escape(role)}"]`;
 
+          // Only use simple, stable-looking classes
           if (element.className && typeof element.className === 'string') {
-            const classes = element.className.split(/\s+/).filter(c => c).join('.');
-            if (classes) identifier += `.${classes}`;
+            const classes = element.className.split(/\s+/)
+              .filter(c => c && /^[a-zA-Z0-9_-]+$/.test(c)) // Avoid colons, brackets, etc.
+              .filter(c => !c.includes("hover") && !c.includes("focus") && !c.includes("active"))
+              .slice(0, 2); // Only take the first 2 classes
+            if (classes.length > 0) identifier += `.${classes.join('.')}`;
           }
           return identifier;
         };
@@ -119,7 +120,7 @@ async function startSelecting(index) {
         const paths = [];
         let current = el;
         let depth = 0;
-        while (current && current !== document.body && depth < 3) {
+        while (current && current !== document.body && depth < 4) {
           paths.unshift(getElementIdentifier(current));
           current = current.parentElement;
           depth++;
@@ -151,12 +152,16 @@ async function startSelecting(index) {
           .slice(0, 50);
 
         chrome.storage.local.get(["clickRules"], (result) => {
-          let rules = result.clickRules || [];
-          if (rules[ruleIndex]) {
-            rules[ruleIndex].selector = selector;
-            rules[ruleIndex].url = url;
-            rules[ruleIndex].text = text;
-            chrome.storage.local.set({ clickRules: rules });
+          let rulesStorage = result.clickRules || [];
+          if (rulesStorage[ruleIndex]) {
+            rulesStorage[ruleIndex].selector = selector;
+            rulesStorage[ruleIndex].url = url;
+            rulesStorage[ruleIndex].text = text;
+            chrome.storage.local.set({ clickRules: rulesStorage }, () => {
+              // Update local state and render
+              rules = rulesStorage;
+              renderRules();
+            });
           }
         });
       };
@@ -166,7 +171,7 @@ async function startSelecting(index) {
     },
     args: [index],
   });
-  window.close();
+  // Removed window.close() to see if it finishes
 }
 
 function renderRules() {
