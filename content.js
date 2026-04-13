@@ -7,7 +7,7 @@ const processPage = () => {
   }
 
   try {
-    chrome.storage.local.get(["autoClickEnabled", "clickRules"], (result) => {
+    chrome.storage.sync.get(["autoClickEnabled", "clickRules"], (result) => {
       if (result.autoClickEnabled === false) return;
 
       const rules = result.clickRules || [];

@@ -6,7 +6,7 @@ const rulesList = document.getElementById("rules-list");
 let rules = [];
 
 // Load existing settings
-chrome.storage.local.get(["autoClickEnabled", "clickRules"], (result) => {
+chrome.storage.sync.get(["autoClickEnabled", "clickRules"], (result) => {
   // Default to true if never set
   checkbox.checked = result.autoClickEnabled !== false;
   switchBtn.setAttribute("aria-checked", checkbox.checked);
@@ -21,7 +21,7 @@ chrome.storage.local.get(["autoClickEnabled", "clickRules"], (result) => {
 
 // Save global setting on change
 checkbox.addEventListener("change", () => {
-  chrome.storage.local.set({ autoClickEnabled: checkbox.checked });
+  chrome.storage.sync.set({ autoClickEnabled: checkbox.checked });
   switchBtn.setAttribute("aria-checked", checkbox.checked);
 });
 
@@ -41,7 +41,7 @@ addRuleBtn.addEventListener("click", async () => {
 });
 
 function saveRules() {
-  chrome.storage.local.set({ clickRules: rules });
+  chrome.storage.sync.set({ clickRules: rules });
 }
 
 function removeRule(index) {
@@ -160,13 +160,13 @@ async function startSelecting(index) {
           .split("\n")[0]
           .slice(0, 50);
 
-        chrome.storage.local.get(["clickRules"], (result) => {
+        chrome.storage.sync.get(["clickRules"], (result) => {
           let rulesStorage = result.clickRules || [];
           if (rulesStorage[ruleIndex]) {
             rulesStorage[ruleIndex].selector = selector;
             rulesStorage[ruleIndex].url = url;
             rulesStorage[ruleIndex].text = text;
-            chrome.storage.local.set({ clickRules: rulesStorage }, () => {
+            chrome.storage.sync.set({ clickRules: rulesStorage }, () => {
               // Update local state and render
               rules = rulesStorage;
               renderRules();
