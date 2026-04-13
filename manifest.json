@@ -21,7 +21,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://*.cloudflareaccess.com/*"],
+      "matches": [
+        "https://*.cloudflareaccess.com/*",
+        "https://dash.cloudflare.com/*"
+      ],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
