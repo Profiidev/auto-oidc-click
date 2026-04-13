@@ -178,28 +178,6 @@
       </div>
     </div>
 
-    <script>
-      // Link button to checkbox for backwards compatibility with popup.js
-      const switchBtn = document.getElementById("switch-btn");
-      const checkbox = document.getElementById("enabled");
-
-      // Sync UI with initial state (wait a tick for popup.js to set it)
-      setTimeout(() => {
-        switchBtn.setAttribute("aria-checked", checkbox.checked);
-      }, 50);
-
-      switchBtn.addEventListener("click", () => {
-        const isChecked = switchBtn.getAttribute("aria-checked") === "true";
-        switchBtn.setAttribute("aria-checked", !isChecked);
-        checkbox.checked = !isChecked;
-        // Trigger change event for popup.js
-        checkbox.dispatchEvent(new Event("change"));
-      });
-
-      checkbox.addEventListener("change", () => {
-        switchBtn.setAttribute("aria-checked", checkbox.checked);
-      });
-    </script>
     <script src="popup.js"></script>
   </body>
 </html>
