@@ -198,11 +198,23 @@
         background: transparent;
         color: hsl(var(--foreground));
         font-size: 12px;
+        word-break: break-all;
       }
 
       .rule-actions {
         display: flex;
         justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .select-btn {
+        background: transparent;
+        color: hsl(var(--primary));
+        border: 1px solid hsl(var(--primary));
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 11px;
+        cursor: pointer;
       }
 
       .remove-btn {

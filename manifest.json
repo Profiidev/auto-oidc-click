@@ -3,7 +3,7 @@
   "name": "Auto Oidc Click",
   "version": "1.0",
   "description": "Automatically clicks the OIDC login button on login pages.",
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab", "storage", "scripting"],
   "icons": {
     "16": "icon.png",
     "32": "icon.png",

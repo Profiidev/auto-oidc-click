@@ -54,6 +54,81 @@ function updateRule(index, field, value) {
   saveRules();
 }
 
+async function startSelecting(index) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !tab.id) return;
+
+  chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: (ruleIndex) => {
+      const overlay = document.createElement("div");
+      overlay.style.position = "fixed";
+      overlay.style.pointerEvents = "none";
+      overlay.style.zIndex = "999999";
+      overlay.style.backgroundColor = "rgba(0, 120, 255, 0.4)";
+      overlay.style.border = "2px solid #0078ff";
+      overlay.style.transition = "all 0.1s ease";
+      overlay.style.display = "none";
+      document.body.appendChild(overlay);
+
+      const moveHandler = (e) => {
+        const target = document.elementFromPoint(e.clientX, e.clientY);
+        if (
+          target &&
+          target !== document.body &&
+          target !== document.documentElement
+        ) {
+          const rect = target.getBoundingClientRect();
+          overlay.style.top = rect.top + "px";
+          overlay.style.left = rect.left + "px";
+          overlay.style.width = rect.width + "px";
+          overlay.style.height = rect.height + "px";
+          overlay.style.display = "block";
+        } else {
+          overlay.style.display = "none";
+        }
+      };
+
+      const getSelector = (el) => {
+        if (el.id) return `#${el.id}`;
+        if (el.className && typeof el.className === "string") {
+          const classes = el.className.trim().split(/\s+/).join(".");
+          if (classes) return `${el.tagName.toLowerCase()}.${classes}`;
+        }
+        return el.tagName.toLowerCase();
+      };
+
+      const clickHandler = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        document.removeEventListener("mousemove", moveHandler, true);
+        document.removeEventListener("click", clickHandler, true);
+
+        const target = document.elementFromPoint(e.clientX, e.clientY);
+        overlay.remove();
+
+        const selector = target ? getSelector(target) : "";
+        const url = window.location.hostname;
+
+        chrome.storage.local.get(["clickRules"], (result) => {
+          let rules = result.clickRules || [];
+          if (rules[ruleIndex]) {
+            if (selector) rules[ruleIndex].selector = selector;
+            if (url && !rules[ruleIndex].url) rules[ruleIndex].url = url;
+            chrome.storage.local.set({ clickRules: rules });
+          }
+        });
+      };
+
+      document.addEventListener("mousemove", moveHandler, true);
+      document.addEventListener("click", clickHandler, true);
+    },
+    args: [index],
+  });
+  window.close();
+}
+
 function renderRules() {
   rulesList.innerHTML = "";
 
@@ -61,32 +136,28 @@ function renderRules() {
     const ruleEl = document.createElement("div");
     ruleEl.className = "rule-item";
 
-    const urlInput = document.createElement("input");
+    const urlInput = document.createElement("div");
     urlInput.className = "rule-input";
-    urlInput.type = "text";
-    urlInput.placeholder = "URL match (e.g. dash.cloudflare.com)";
-    urlInput.value = rule.url || "";
-    urlInput.addEventListener("input", (e) =>
-      updateRule(index, "url", e.target.value),
-    );
+    urlInput.textContent = rule.url || "URL: Not selected";
 
-    const selectorInput = document.createElement("input");
+    const selectorInput = document.createElement("div");
     selectorInput.className = "rule-input";
-    selectorInput.type = "text";
-    selectorInput.placeholder = "CSS Selector (e.g. button#login)";
-    selectorInput.value = rule.selector || "";
-    selectorInput.addEventListener("input", (e) =>
-      updateRule(index, "selector", e.target.value),
-    );
+    selectorInput.textContent = rule.selector || "Selector: Not selected";
 
     const actionsEl = document.createElement("div");
     actionsEl.className = "rule-actions";
+
+    const selectBtn = document.createElement("button");
+    selectBtn.className = "select-btn";
+    selectBtn.textContent = "Select";
+    selectBtn.addEventListener("click", () => startSelecting(index));
 
     const removeBtn = document.createElement("button");
     removeBtn.className = "remove-btn";
     removeBtn.textContent = "Remove";
     removeBtn.addEventListener("click", () => removeRule(index));
 
+    actionsEl.appendChild(selectBtn);
     actionsEl.appendChild(removeBtn);
 
     ruleEl.appendChild(urlInput);
