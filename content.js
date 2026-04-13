@@ -21,8 +21,24 @@ const processPage = () => {
             const elements = document.querySelectorAll(rule.selector);
             for (const el of elements) {
               if (!clickedElements.has(el)) {
-                el.click();
-                clickedElements.add(el);
+                const elText = (el.innerText || 
+                               el.value || 
+                               el.getAttribute("aria-label") || 
+                               el.getAttribute("name") || 
+                               "")
+                  .trim()
+                  .split("\n")[0]
+                  .slice(0, 50);
+                
+                const matchesText = !rule.text || 
+                                  elText.includes(rule.text) || 
+                                  rule.text.includes(elText) ||
+                                  el.textContent.includes(rule.text);
+
+                if (matchesText) {
+                  el.click();
+                  clickedElements.add(el);
+                }
               }
             }
           } catch (e) {

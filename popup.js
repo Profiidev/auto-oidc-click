@@ -33,10 +33,11 @@ switchBtn.addEventListener("click", () => {
   checkbox.dispatchEvent(new Event("change"));
 });
 
-addRuleBtn.addEventListener("click", () => {
-  rules.push({ url: "", selector: "" });
+addRuleBtn.addEventListener("click", async () => {
+  const newIndex = rules.length;
+  rules.push({ url: "", selector: "", text: "" });
   saveRules();
-  renderRules();
+  await startSelecting(newIndex);
 });
 
 function saveRules() {
@@ -58,7 +59,7 @@ async function startSelecting(index) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab || !tab.id) return;
 
-  chrome.scripting.executeScript({
+  await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: (ruleIndex) => {
       const overlay = document.createElement("div");
@@ -90,12 +91,40 @@ async function startSelecting(index) {
       };
 
       const getSelector = (el) => {
-        if (el.id) return `#${el.id}`;
-        if (el.className && typeof el.className === "string") {
-          const classes = el.className.trim().split(/\s+/).join(".");
-          if (classes) return `${el.tagName.toLowerCase()}.${classes}`;
+        const getElementIdentifier = (element) => {
+          if (element.id) return `#${element.id}`;
+          if (element.getAttribute("data-testid"))
+            return `[data-testid="${element.getAttribute("data-testid")}"]`;
+          
+          let identifier = element.tagName.toLowerCase();
+          const nameAttr = element.getAttribute("name");
+          const ariaLabel = element.getAttribute("aria-label");
+          
+          if (nameAttr) {
+            identifier += `[name="${nameAttr}"]`;
+            return identifier;
+          }
+          if (ariaLabel) {
+            identifier += `[aria-label="${ariaLabel}"]`;
+            return identifier;
+          }
+
+          if (element.className && typeof element.className === 'string') {
+            const classes = element.className.split(/\s+/).filter(c => c).join('.');
+            if (classes) identifier += `.${classes}`;
+          }
+          return identifier;
+        };
+
+        const paths = [];
+        let current = el;
+        let depth = 0;
+        while (current && current !== document.body && depth < 3) {
+          paths.unshift(getElementIdentifier(current));
+          current = current.parentElement;
+          depth++;
         }
-        return el.tagName.toLowerCase();
+        return paths.join(" > ");
       };
 
       const clickHandler = (e) => {
@@ -108,14 +137,25 @@ async function startSelecting(index) {
         const target = document.elementFromPoint(e.clientX, e.clientY);
         overlay.remove();
 
-        const selector = target ? getSelector(target) : "";
+        if (!target) return;
+
+        const selector = getSelector(target);
         const url = window.location.hostname;
+        const text = (target.innerText || 
+                      target.value || 
+                      target.getAttribute("aria-label") || 
+                      target.getAttribute("name") || 
+                      "")
+          .trim()
+          .split("\n")[0]
+          .slice(0, 50);
 
         chrome.storage.local.get(["clickRules"], (result) => {
           let rules = result.clickRules || [];
           if (rules[ruleIndex]) {
-            if (selector) rules[ruleIndex].selector = selector;
-            if (url && !rules[ruleIndex].url) rules[ruleIndex].url = url;
+            rules[ruleIndex].selector = selector;
+            rules[ruleIndex].url = url;
+            rules[ruleIndex].text = text;
             chrome.storage.local.set({ clickRules: rules });
           }
         });
@@ -136,32 +176,45 @@ function renderRules() {
     const ruleEl = document.createElement("div");
     ruleEl.className = "rule-item";
 
-    const urlInput = document.createElement("div");
-    urlInput.className = "rule-input";
-    urlInput.textContent = rule.url || "URL: Not selected";
+    const infoContainer = document.createElement("div");
+    infoContainer.className = "rule-info";
 
-    const selectorInput = document.createElement("div");
-    selectorInput.className = "rule-input";
-    selectorInput.textContent = rule.selector || "Selector: Not selected";
+    const urlEl = document.createElement("div");
+    urlEl.className = "rule-url";
+    urlEl.textContent = rule.url || "Select website";
+    urlEl.title = rule.url || "";
+
+    const textEl = document.createElement("div");
+    textEl.className = "rule-text";
+    textEl.textContent = rule.text ? `Btn: ${rule.text}` : "Select button";
+    textEl.title = rule.selector || "";
+
+    infoContainer.appendChild(urlEl);
+    infoContainer.appendChild(textEl);
 
     const actionsEl = document.createElement("div");
     actionsEl.className = "rule-actions";
 
     const selectBtn = document.createElement("button");
-    selectBtn.className = "select-btn";
-    selectBtn.textContent = "Select";
+    selectBtn.className = "btn btn-ghost icon-btn";
+    selectBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+    `;
+    selectBtn.title = "Reselect";
     selectBtn.addEventListener("click", () => startSelecting(index));
 
     const removeBtn = document.createElement("button");
-    removeBtn.className = "remove-btn";
-    removeBtn.textContent = "Remove";
+    removeBtn.className = "btn btn-ghost btn-destructive icon-btn";
+    removeBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+    `;
+    removeBtn.title = "Remove";
     removeBtn.addEventListener("click", () => removeRule(index));
 
     actionsEl.appendChild(selectBtn);
     actionsEl.appendChild(removeBtn);
 
-    ruleEl.appendChild(urlInput);
-    ruleEl.appendChild(selectorInput);
+    ruleEl.appendChild(infoContainer);
     ruleEl.appendChild(actionsEl);
 
     rulesList.appendChild(ruleEl);
