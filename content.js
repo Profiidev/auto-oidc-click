@@ -1,52 +1,49 @@
-const clickOidcButton = () => {
-  chrome.storage.local.get(["autoClickEnabled", "ssoEnabled"], (result) => {
-    const buttons = document.querySelectorAll("button, a");
+const clickedElements = new WeakSet();
 
-    for (const btn of buttons) {
-      // Cloudflare Access OIDC button
-      if (
-        result.autoClickEnabled !== false &&
-        (btn.textContent.includes("OpenID Connect") ||
-          btn.innerText.includes("OIDC"))
-      ) {
-        btn.click();
-        observer.disconnect();
-        return;
-      }
+const processPage = () => {
+  if (!chrome.runtime?.id) {
+    if (typeof observer !== "undefined") observer.disconnect();
+    return;
+  }
 
-      // Cloudflare Dash SSO button
-      if (
-        result.ssoEnabled !== false &&
-        (btn.textContent.includes("Log in with SSO") ||
-          btn.innerText.includes("Log in with SSO"))
-      ) {
-        const emailInput = document.querySelector('input[type="email"]');
-        if (emailInput && emailInput.value) {
-          btn.click();
-          observer.disconnect();
-          return;
+  try {
+    chrome.storage.local.get(["autoClickEnabled", "clickRules"], (result) => {
+      // Exit if the global toggle is off
+      if (result.autoClickEnabled === false) return;
+
+      const rules = result.clickRules || [];
+      const currentUrl = window.location.href;
+
+      // Process generalized click rules
+      for (const rule of rules) {
+        if (rule.url && rule.selector && currentUrl.includes(rule.url)) {
+          try {
+            const elements = document.querySelectorAll(rule.selector);
+            for (const el of elements) {
+              if (!clickedElements.has(el)) {
+                el.click();
+                clickedElements.add(el);
+              }
+            }
+          } catch (e) {
+            // Ignore invalid CSS selectors
+            console.warn("Auto OIDC Click: Invalid selector", rule.selector);
+          }
         }
       }
-    }
-
+    });
+  } catch (e) {
     if (
-      result.ssoEnabled !== false &&
-      window.location.hostname === "dash.cloudflare.com"
+      e.message.includes("Extension context invalidated") &&
+      typeof observer !== "undefined"
     ) {
-      const emailInput = document.querySelector('input[type="email"]');
-      const passwordInput = document.querySelector('input[type="password"]');
-      if (emailInput && emailInput.value && passwordInput) {
-        passwordInput.style.display = "none";
-        if (passwordInput.parentElement) {
-          passwordInput.parentElement.style.display = "none";
-        }
-      }
+      observer.disconnect();
     }
-  });
+  }
 };
 
-// Start observing the page
-const observer = new MutationObserver(clickOidcButton);
+// Start observing the page for dynamic changes
+const observer = new MutationObserver(processPage);
 observer.observe(document.body, {
   childList: true,
   subtree: true,
@@ -55,4 +52,7 @@ observer.observe(document.body, {
 });
 
 // Initial check
-clickOidcButton();
+processPage();
+
+// Interval check as a fallback for some SPA navigations
+//setInterval(processPage, 500);

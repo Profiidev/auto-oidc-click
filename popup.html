@@ -154,6 +154,66 @@
         white-space: nowrap;
         border-width: 0;
       }
+
+      .rules-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 8px;
+      }
+
+      .add-btn {
+        background: hsl(var(--primary));
+        color: hsl(var(--primary-foreground));
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      .rules-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 250px;
+        overflow-y: auto;
+      }
+
+      .rule-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px;
+        border: 1px solid hsl(var(--border));
+        border-radius: var(--radius);
+        background: hsl(var(--background));
+      }
+
+      .rule-input {
+        width: 100%;
+        padding: 4px 8px;
+        border: 1px solid hsl(var(--input));
+        border-radius: 4px;
+        background: transparent;
+        color: hsl(var(--foreground));
+        font-size: 12px;
+      }
+
+      .rule-actions {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .remove-btn {
+        background: transparent;
+        color: #ef4444;
+        border: 1px solid #ef4444;
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 11px;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -177,20 +237,12 @@
         <input type="checkbox" id="enabled" class="sr-only" checked />
       </div>
 
-      <div class="switch-container">
-        <label class="switch-label" for="sso-enabled"
-          >Auto-SSO Cloudflare</label
-        >
-        <button
-          type="button"
-          role="switch"
-          aria-checked="true"
-          class="switch"
-          id="sso-switch-btn"
-        >
-          <span class="switch-thumb"></span>
-        </button>
-        <input type="checkbox" id="sso-enabled" class="sr-only" checked />
+      <div class="rules-header">
+        <div class="header">Rules</div>
+        <button id="add-rule-btn" class="add-btn">+ Add</button>
+      </div>
+      <div id="rules-list" class="rules-list">
+        <!-- Rules will be injected here -->
       </div>
     </div>
 
