@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Cloudflare Access Auto-OIDC",
+  "name": "Auto Oidc Click",
   "version": "1.0",
-  "description": "Automatically selects OIDC on Cloudflare Access pages.",
+  "description": "Automatically clicks the OIDC login button on login pages.",
   "permissions": ["activeTab", "storage"],
   "action": {
     "default_popup": "popup.html"
