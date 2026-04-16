@@ -172,6 +172,7 @@ async function startSelecting(index) {
 
         document.removeEventListener("mousemove", moveHandler, true);
         document.removeEventListener("click", clickHandler, true);
+        document.removeEventListener("keydown", keydownHandler, true);
 
         const target = document.elementFromPoint(e.clientX, e.clientY);
         overlay.remove();
@@ -206,8 +207,20 @@ async function startSelecting(index) {
         });
       };
 
+      const keydownHandler = (e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          document.removeEventListener("mousemove", moveHandler, true);
+          document.removeEventListener("click", clickHandler, true);
+          document.removeEventListener("keydown", keydownHandler, true);
+          overlay.remove();
+        }
+      };
+
       document.addEventListener("mousemove", moveHandler, true);
       document.addEventListener("click", clickHandler, true);
+      document.addEventListener("keydown", keydownHandler, true);
     },
     args: [index],
   });
