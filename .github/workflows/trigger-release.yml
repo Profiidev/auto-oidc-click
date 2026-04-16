@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.PERSONAL_TOKEN }}
 
       - name: Update version
         id: update_version
