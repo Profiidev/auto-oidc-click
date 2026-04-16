@@ -51,8 +51,6 @@ addRuleBtn.addEventListener("click", async () => {
     return;
   }
   const newIndex = rules.length;
-  rules.push({ url: "", selector: "", text: "" });
-  saveRules();
   await startSelecting(newIndex);
 });
 
@@ -192,18 +190,16 @@ async function startSelecting(index) {
           .split("\n")[0]
           .slice(0, 50);
 
+        if (!selector || !url) return;
+
         chrome.storage.sync.get(["clickRules"], (result) => {
           let rulesStorage = result.clickRules || [];
-          if (rulesStorage[ruleIndex]) {
-            rulesStorage[ruleIndex].selector = selector;
-            rulesStorage[ruleIndex].url = url;
-            rulesStorage[ruleIndex].text = text;
-            chrome.storage.sync.set({ clickRules: rulesStorage }, () => {
-              // Update local state and render
-              rules = rulesStorage;
-              renderRules();
-            });
-          }
+          rulesStorage.push({ selector, url, text });
+          chrome.storage.sync.set({ clickRules: rulesStorage }, () => {
+            // Update local state and render
+            rules = rulesStorage;
+            renderRules();
+          });
         });
       };
 
