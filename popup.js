@@ -2,6 +2,7 @@ const checkbox = document.getElementById("enabled");
 const switchBtn = document.getElementById("switch-btn");
 const addRuleBtn = document.getElementById("add-rule-btn");
 const rulesList = document.getElementById("rules-list");
+const errorMsg = document.getElementById("error-message");
 
 let rules = [];
 
@@ -34,6 +35,21 @@ switchBtn.addEventListener("click", () => {
 });
 
 addRuleBtn.addEventListener("click", async () => {
+  errorMsg.style.display = "none";
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (
+    tab &&
+    (tab.url.startsWith("chrome://") ||
+      tab.url.startsWith("chrome-extension://") ||
+      tab.url.startsWith("edge://") ||
+      tab.url.startsWith("about:") ||
+      tab.url.startsWith("https://chrome.google.com/webstore") ||
+      tab.url.startsWith("https://chromewebstore.google.com/"))
+  ) {
+    errorMsg.textContent = "Cannot add rules on restricted browser pages.";
+    errorMsg.style.display = "block";
+    return;
+  }
   const newIndex = rules.length;
   rules.push({ url: "", selector: "", text: "" });
   saveRules();
@@ -56,8 +72,23 @@ function updateRule(index, field, value) {
 }
 
 async function startSelecting(index) {
+  errorMsg.style.display = "none";
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab || !tab.id) return;
+
+  if (
+    tab.url.startsWith("chrome://") ||
+    tab.url.startsWith("chrome-extension://") ||
+    tab.url.startsWith("edge://") ||
+    tab.url.startsWith("about:") ||
+    tab.url.startsWith("https://chrome.google.com/webstore") ||
+    tab.url.startsWith("https://chromewebstore.google.com/")
+  ) {
+    errorMsg.textContent =
+      "Cannot select elements on restricted browser pages.";
+    errorMsg.style.display = "block";
+    return;
+  }
 
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },
@@ -180,7 +211,7 @@ async function startSelecting(index) {
     },
     args: [index],
   });
-  // Removed window.close() to see if it finishes
+  window.close();
 }
 
 function renderRules() {
