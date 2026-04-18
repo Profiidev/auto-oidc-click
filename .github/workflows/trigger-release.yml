@@ -14,10 +14,13 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3
+        id: app-token
+        with:
+          client-id: ${{ secrets.COMMIT_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.COMMIT_BOT_PRIVATE_KEY }}
       - name: Checkout code
         uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.PERSONAL_TOKEN }}
 
       - name: Update version
         id: update_version
@@ -28,13 +31,13 @@ jobs:
           jq --arg new_version "$NEW_VERSION" '.version = $new_version' manifest.json > manifest.tmp.json && mv manifest.tmp.json manifest.json
           npx -y prettier -cw .
 
-      - name: Commit and push changes
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add manifest.json
-          git commit -m "Bump version to $NEW_VERSION"
-          git push origin HEAD:main
+      - uses: planetscale/ghcommit-action@v0.2.20
+        with:
+          commit_message: "Bump version to ${{ github.event.inputs.version }}"
+          repo: ${{ github.repository }}
+          branch: ${{ github.head_ref || github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Tag the release
         run: |
